@@ -65,6 +65,16 @@ class VirtualTouchDemo:
         )
         self.mp_draw = mp.solutions.drawing_utils
 
+    @staticmethod
+    def _fit_size(src_w: int, src_h: int, max_w: int, max_h: int) -> Tuple[int, int]:
+        """按原始宽高比缩放到目标范围内，避免预览画面被拉伸。"""
+        if src_w <= 0 or src_h <= 0:
+            return max_w, max_h
+
+        scale = min(max_w / src_w, max_h / src_h)
+        scale = max(scale, 0.1)
+        return int(src_w * scale), int(src_h * scale)
+
     def _draw_buttons(
         self, frame: np.ndarray, fingertip: Tuple[int, int] | None
     ) -> np.ndarray:
@@ -135,7 +145,10 @@ class VirtualTouchDemo:
             raise RuntimeError("无法打开摄像头，请检查设备是否被占用。")
 
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(self.window_name, 1000, 650)
+        cam_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        cam_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        win_w, win_h = self._fit_size(cam_w, cam_h, max_w=1000, max_h=700)
+        cv2.resizeWindow(self.window_name, win_w, win_h)
 
         try:
             while True:
