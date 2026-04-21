@@ -46,6 +46,7 @@ class VirtualTouchDemo:
     def __init__(self, camera_index: int = 0) -> None:
         self.camera_index = camera_index
         self.window_name = "Virtual Touch Demo (MediaPipe)"
+        self.preferred_camera_size = (1280, 720)
 
         # 在预览上放置 4 个无效按钮。
         self.buttons: List[FloatingButton] = [
@@ -74,6 +75,15 @@ class VirtualTouchDemo:
         scale = min(max_w / src_w, max_h / src_h)
         scale = max(scale, 0.1)
         return int(src_w * scale), int(src_h * scale)
+
+    def _configure_camera_size(self, cap: cv2.VideoCapture) -> Tuple[int, int]:
+        """尝试设置更高分辨率；返回实际生效的分辨率。"""
+        target_w, target_h = self.preferred_camera_size
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, target_w)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, target_h)
+        actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        return actual_w, actual_h
 
     def _draw_buttons(
         self, frame: np.ndarray, fingertip: Tuple[int, int] | None
@@ -145,8 +155,7 @@ class VirtualTouchDemo:
             raise RuntimeError("无法打开摄像头，请检查设备是否被占用。")
 
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
-        cam_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        cam_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        cam_w, cam_h = self._configure_camera_size(cap)
         win_w, win_h = self._fit_size(cam_w, cam_h, max_w=1000, max_h=700)
         cv2.resizeWindow(self.window_name, win_w, win_h)
 
@@ -193,6 +202,16 @@ class VirtualTouchDemo:
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.7,
                     (220, 220, 220),
+                    2,
+                    cv2.LINE_AA,
+                )
+                cv2.putText(
+                    frame,
+                    f"Camera: {cam_w}x{cam_h}",
+                    (20, 62),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.65,
+                    (210, 210, 210),
                     2,
                     cv2.LINE_AA,
                 )
